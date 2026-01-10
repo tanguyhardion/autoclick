@@ -71,6 +71,27 @@ function App() {
     }
   };
 
+  const requestScreenshot = async () => {
+    setLoading(true);
+    try {
+        const res = await fetch(`${API_BASE}/api/control/screenshot`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                masterPassword: password
+            })
+        });
+        const json = await res.json();
+        if (!json.success) {
+            alert(json.error);
+        }
+    } catch (e: any) {
+        alert(e.message);
+    } finally {
+        setLoading(false);
+    }
+  };
+
   return (
     <div className="container">
       <h1>Autoclicker Dashboard</h1>
@@ -130,7 +151,29 @@ function App() {
             >
               Continue
             </button>
+             <button
+              onClick={requestScreenshot}
+              disabled={loading}
+              className="btn screenshot"
+              style={{ backgroundColor: "#646cff" }}
+            >
+              Take Screenshot
+            </button>
           </div>
+
+          {status.latest_screenshot_data && (
+             <div className="screenshot-box" style={{ marginTop: "20px", textAlign: "center" }}>
+                 <h3>Latest Screenshot</h3>
+                 <img 
+                    src={status.latest_screenshot_data} 
+                    alt="Bot View" 
+                    style={{ maxWidth: "100%", border: "2px solid #ccc", borderRadius: "8px" }}
+                 />
+                 <p style={{ fontSize: "0.8em", color: "#666" }}>
+                    Captured: {new Date(status.latest_screenshot_at).toLocaleString()}
+                 </p>
+             </div>
+          )}
         </div>
       ) : (
         <p>Waiting for status...</p>
