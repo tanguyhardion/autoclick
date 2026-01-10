@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
-import "./App.css";
+import { PasswordModal } from "./components/PasswordModal";
+import { StatBox } from "./components/StatBox";
+import { ControlPanel } from "./components/ControlPanel";
+import { ScreenshotViewer } from "./components/ScreenshotViewer";
 
 const getBackendUrl = (): string => {
   return import.meta.env.DEV
@@ -10,14 +13,21 @@ const getBackendUrl = (): string => {
 const API_BASE = getBackendUrl();
 
 function App() {
-  const [password, setPassword] = useState(() => localStorage.getItem("masterPassword") || "");
+  const [password, setPassword] = useState(() => sessionStorage.getItem("masterPassword") || "");
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [isAuth, setIsAuth] = useState(false);
 
-  const savePassword = (val: string) => {
+  useEffect(() => {
+    if (password) {
+      setIsAuth(true);
+    }
+  }, [password]);
+
+  const handleLogin = (val: string) => {
     setPassword(val);
-    localStorage.setItem("masterPassword", val);
+    sessionStorage.setItem("masterPassword", val);
+    setIsAuth(true);
   };
 
   useEffect(() => {
@@ -30,14 +40,18 @@ function App() {
         url.searchParams.append("masterPassword", password);
 
         const res = await fetch(url.toString());
+        
+        if (res.status === 401) {
+             setIsAuth(false);
+             setPassword("");
+             sessionStorage.removeItem("masterPassword");
+             return;
+        }
+
         const json = await res.json();
         
         if (json.success) {
             setStatus(json.data);
-            setError("");
-        } else {
-            // handle auth error silently or log
-            if (res.status === 401) setError("Invalid Password");
         }
       } catch (err) {
         // console.error(err);
@@ -92,92 +106,76 @@ function App() {
     }
   };
 
+  if (!isAuth) {
+      return <PasswordModal onSuccess={handleLogin} />;
+  }
+
   return (
-    <div className="container">
-      <h1>Autoclicker Dashboard</h1>
-
-      <div className="card">
-        <label>
-          Master Password:
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => savePassword(e.target.value)}
-            placeholder="Enter Master Password"
-            style={{ marginLeft: "10px", padding: "5px" }}
-          />
-        </label>
-        {error && <p style={{ color: "red" }}>{error}</p>}
-      </div>
-
-      {status ? (
-        <div className="dashboard">
-          <div className="stat-box">
-            <h2>Status</h2>
-            <div className={`status-badge ${status.status.toLowerCase()}`}>
-              {status.status}
-            </div>
-          </div>
-
-          <div className="stat-box">
-            <h2>Current Level</h2>
-            <div className="stat-value">{status.current_level}</div>
-          </div>
-
-          <div className="stat-box">
-            <h2>Total Completed</h2>
-            <div className="stat-value">{status.total_levels_completed}</div>
-          </div>
-
-          <div className="controls">
-            <button
-              onClick={() => sendControl("START")}
-              disabled={loading || status.status === "RUNNING"}
-              className="btn start"
-            >
-              Start
-            </button>
-            <button
-              onClick={() => sendControl("STOP")}
-              disabled={loading || status.status === "STOPPED"}
-              className="btn stop"
-            >
-              Stop
-            </button>
-            <button
-              onClick={() => sendControl("CONTINUE")}
-              disabled={loading || status.status === "RUNNING"}
-              className="btn continue"
-            >
-              Continue
-            </button>
-             <button
-              onClick={requestScreenshot}
-              disabled={loading}
-              className="btn screenshot"
-              style={{ backgroundColor: "#646cff" }}
-            >
-              Take Screenshot
-            </button>
-          </div>
-
-          {status.latest_screenshot_data && (
-             <div className="screenshot-box" style={{ marginTop: "20px", textAlign: "center" }}>
-                 <h3>Latest Screenshot</h3>
-                 <img 
-                    src={status.latest_screenshot_data} 
-                    alt="Bot View" 
-                    style={{ maxWidth: "100%", border: "2px solid #ccc", borderRadius: "8px" }}
-                 />
-                 <p style={{ fontSize: "0.8em", color: "#666" }}>
-                    Captured: {new Date(status.latest_screenshot_at).toLocaleString()}
-                 </p>
+    <div className="min-h-screen bg-slate-950 p-6 md:p-12 font-sans text-slate-100">
+      <div className="max-w-7xl mx-auto space-y-8">
+        
+        {/* Header */}
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+             <div>
+                <h1 className="text-3xl font-extrabold text-white tracking-tight">Autoclicker Dashboard</h1>
+                <p className="text-slate-400 mt-1">Monitor and control your automation bot</p>
              </div>
-          )}
-        </div>
-      ) : (
-        <p>Waiting for status...</p>
-      )}
+             <div className="flex items-center gap-3">
+                 <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold shadow-sm border ${status ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                    <span className={`w-2.5 h-2.5 rounded-full ${status ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
+                    {status ? 'System Online' : 'Connecting Fallback...'}
+                 </div>
+             </div>
+        </header>
+
+        {status ? (
+            <main className="space-y-6 animate-in fade-in duration-500">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <StatBox 
+                        title="Status" 
+                        value={status.status} 
+                        variant="status" 
+                    />
+                    <StatBox 
+                        title="Current Level" 
+                        value={status.current_level} 
+                    />
+                    <StatBox 
+                        title="Total Completed" 
+                        value={status.total_levels_completed} 
+                    />
+                </div>
+
+                <ControlPanel 
+                    onStart={() => sendControl("START")}
+                    onStop={() => sendControl("STOP")}
+                    onContinue={() => sendControl("CONTINUE")}
+                    onScreenshot={requestScreenshot}
+                    loading={loading}
+                    status={status.status}
+                />
+
+                <div className="w-full">
+                    <ScreenshotViewer 
+                        src={status.latest_screenshot_data} 
+                        timestamp={status.latest_screenshot_at}
+                    />
+                </div>
+            </main>
+        ) : (
+            <div className="flex flex-col items-center justify-center py-32 rounded-3xl bg-slate-900 border border-slate-800 shadow-sm">
+                <div className="relative mb-6">
+                    <div className="w-16 h-16 border-4 border-slate-800 border-t-primary-600 rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-8 h-8 bg-slate-800 rounded-full"></div>
+                    </div>
+                </div>
+                <h3 className="text-lg font-bold text-white">Connecting to Bot</h3>
+                <p className="text-slate-500 mt-1 animate-pulse">Waiting for status signal...</p>
+            </div>
+        )}
+
+      </div>
     </div>
   );
 }
