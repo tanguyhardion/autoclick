@@ -3,6 +3,7 @@ import { PasswordModal } from "./components/PasswordModal";
 import { StatBox } from "./components/StatBox";
 import { ControlPanel } from "./components/ControlPanel";
 import { ScreenshotViewer } from "./components/ScreenshotViewer";
+import { LogsViewer } from "./components/LogsViewer";
 
 const getBackendUrl = (): string => {
   return import.meta.env.DEV
@@ -123,7 +124,7 @@ function App() {
              <div className="flex items-center gap-3">
                  <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold shadow-sm border ${status ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
                     <span className={`w-2.5 h-2.5 rounded-full ${status ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}></span>
-                    {status ? 'System Online' : 'Connecting Fallback...'}
+                    {status ? 'System Online' : 'Connecting...'}
                  </div>
              </div>
         </header>
@@ -159,6 +160,13 @@ function App() {
                     <ScreenshotViewer 
                         src={status.latest_screenshot_data} 
                         timestamp={status.latest_screenshot_at}
+                    />
+                </div>
+                
+                <div className="w-full">
+                    <LogsViewer 
+                        apiBase={API_BASE}
+                        password={password}
                     />
                 </div>
             </main>
