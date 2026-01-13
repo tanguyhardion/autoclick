@@ -18,6 +18,7 @@ function App() {
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
+  const [targetLevel, setTargetLevel] = useState(0); // 0 = unlimited
 
   useEffect(() => {
     if (password) {
@@ -53,6 +54,11 @@ function App() {
         
         if (json.success) {
             setStatus(json.data);
+            // Sync target level from backend if not set locally yet or to keep in sync?
+            // Usually local override is better, but seeing current server setting is good.
+            // Let's only set it if we haven't touched it? Or just let user overwrite.
+            // For now, let's not auto-update targetLevel from backend to avoid input jumping while typing.
+            // But we could display the "Current Target" in StatBox.
         }
       } catch (err) {
         // console.error(err);
@@ -65,13 +71,19 @@ function App() {
   const sendControl = async (action: "START" | "STOP" | "CONTINUE") => {
     setLoading(true);
     try {
+        const payload: any = {
+            masterPassword: password,
+            action
+        };
+        // Include targetLevel for START/CONTINUE
+        if (action === "START" || action === "CONTINUE") {
+            payload.targetLevel = targetLevel;
+        }
+
         const res = await fetch(`${API_BASE}/api/control`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                masterPassword: password,
-                action
-            })
+            body: JSON.stringify(payload)
         });
         const json = await res.json();
         if (json.success) {
@@ -85,6 +97,7 @@ function App() {
         setLoading(false);
     }
   };
+
 
   const requestScreenshot = async () => {
     setLoading(true);
@@ -154,6 +167,8 @@ function App() {
                     onScreenshot={requestScreenshot}
                     loading={loading}
                     status={status.status}
+                    targetLevel={targetLevel}
+                    setTargetLevel={setTargetLevel}
                 />
 
                 <div className="w-full">

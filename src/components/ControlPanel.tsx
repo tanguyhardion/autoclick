@@ -7,10 +7,12 @@ interface ControlPanelProps {
   onScreenshot: () => void;
   loading: boolean;
   status: string;
+  targetLevel: number;
+  setTargetLevel: (val: number) => void;
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({ 
-  onStart, onStop, onContinue, onScreenshot, loading, status 
+  onStart, onStop, onContinue, onScreenshot, loading, status, targetLevel, setTargetLevel
 }) => {
   const isRunning = status === 'RUNNING';
   
@@ -18,7 +20,21 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
 
   return (
     <div className="bg-slate-900 rounded-2xl shadow-sm border border-slate-800 p-8">
-      <h3 className="text-slate-100 font-bold mb-6 text-xl tracking-tight">Bot Controls</h3>
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+        <h3 className="text-slate-100 font-bold text-xl tracking-tight">Bot Controls</h3>
+        <div className="flex items-center gap-3 mt-4 md:mt-0">
+            <label className="text-slate-400 font-medium text-sm">Stop at Level:</label>
+            <input 
+                type="number" 
+                min="0"
+                value={targetLevel}
+                onChange={(e) => setTargetLevel(parseInt(e.target.value) || 0)}
+                className="bg-slate-800 border border-slate-700 text-white px-3 py-1.5 rounded-lg w-24 focus:outline-none focus:ring-2 focus:ring-primary-500 text-center"
+                placeholder="0 (None)"
+            />
+            <span className="text-xs text-slate-500">(0 = No Limit)</span>
+        </div>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <button
           onClick={onStart}
