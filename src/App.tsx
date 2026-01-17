@@ -17,8 +17,9 @@ function App() {
   const [password, setPassword] = useState(() => sessionStorage.getItem("masterPassword") || "");
   const [status, setStatus] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [screenshotLoading, setScreenshotLoading] = useState(false);
   const [isAuth, setIsAuth] = useState(false);
-  const [targetLevel, setTargetLevel] = useState(0); // 0 = unlimited
+  const [targetLevel, setTargetLevel] = useState<number | null>(null); // null = loading, 0 = unlimited
 
   useEffect(() => {
     if (password) {
@@ -26,11 +27,50 @@ function App() {
     }
   }, [password]);
 
+  // Fetch targetLevel from database on first load after authentication
+  useEffect(() => {
+    if (!password || targetLevel !== null) return; // Only fetch once on auth
+    
+    const fetchTargetLevel = async () => {
+      try {
+        const url = new URL(`${API_BASE}/api/status`);
+        url.searchParams.append("masterPassword", password);
+        const res = await fetch(url.toString());
+        
+        if (res.status === 401) {
+          setIsAuth(false);
+          setPassword("");
+          sessionStorage.removeItem("masterPassword");
+          return;
+        }
+        
+        const json = await res.json();
+        if (json.success && json.data.target_level !== undefined) {
+          setTargetLevel(json.data.target_level);
+        } else {
+          setTargetLevel(0); // Default to no limit
+        }
+      } catch (err) {
+        console.error("Error fetching target level:", err);
+        setTargetLevel(0); // Default to no limit on error
+      }
+    };
+    
+    fetchTargetLevel();
+  }, [password]);
+
   const handleLogin = (val: string) => {
     setPassword(val);
     sessionStorage.setItem("masterPassword", val);
     setIsAuth(true);
   };
+
+  // Turn off screenshot loading when new screenshot arrives
+  useEffect(() => {
+    if (screenshotLoading && status?.latest_screenshot_at) {
+      setScreenshotLoading(false);
+    }
+  }, [status?.latest_screenshot_at]);
 
   useEffect(() => {
     if (!password) return;
@@ -100,7 +140,8 @@ function App() {
 
 
   const requestScreenshot = async () => {
-    setLoading(true);
+    setScreenshotLoading(true);
+    const currentScreenshot = status?.latest_screenshot_at;
     try {
         const res = await fetch(`${API_BASE}/api/control/screenshot`, {
             method: "POST",
@@ -112,11 +153,12 @@ function App() {
         const json = await res.json();
         if (!json.success) {
             alert(json.error);
+            setScreenshotLoading(false);
         }
+        // Keep loading state until new screenshot arrives (via polling)
     } catch (e: any) {
         alert(e.message);
-    } finally {
-        setLoading(false);
+        setScreenshotLoading(false);
     }
   };
 
@@ -160,21 +202,25 @@ function App() {
                     />
                 </div>
 
-                <ControlPanel 
-                    onStart={() => sendControl("START")}
-                    onStop={() => sendControl("STOP")}
-                    onContinue={() => sendControl("CONTINUE")}
-                    onScreenshot={requestScreenshot}
-                    loading={loading}
-                    status={status.status}
-                    targetLevel={targetLevel}
-                    setTargetLevel={setTargetLevel}
-                />
+                {targetLevel !== null && (
+                    <ControlPanel 
+                        onStart={() => sendControl("START")}
+                        onStop={() => sendControl("STOP")}
+                        onContinue={() => sendControl("CONTINUE")}
+                        onScreenshot={requestScreenshot}
+                        loading={loading}
+                        screenshotLoading={screenshotLoading}
+                        status={status.status}
+                        targetLevel={targetLevel}
+                        setTargetLevel={setTargetLevel}
+                    />
+                )}
 
                 <div className="w-full">
                     <ScreenshotViewer 
                         src={status.latest_screenshot_data} 
                         timestamp={status.latest_screenshot_at}
+                        loading={screenshotLoading}
                     />
                 </div>
                 
