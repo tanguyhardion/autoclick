@@ -103,7 +103,7 @@ function App() {
       } catch (err) {
         // console.error(err);
       }
-    }, 2000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [password]);
@@ -141,7 +141,6 @@ function App() {
 
   const requestScreenshot = async () => {
     setScreenshotLoading(true);
-    const currentScreenshot = status?.latest_screenshot_at;
     try {
         const res = await fetch(`${API_BASE}/api/control/screenshot`, {
             method: "POST",
