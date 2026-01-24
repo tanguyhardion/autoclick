@@ -161,6 +161,29 @@ function App() {
     }
   };
 
+  const requestRelaunch = async () => {
+    setLoading(true);
+    try {
+        const res = await fetch(`${API_BASE}/api/control/relaunch`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                masterPassword: password
+            })
+        });
+        const json = await res.json();
+        if (json.success) {
+            alert("Game relaunch initiated. The bot will restart the game shortly.");
+        } else {
+            alert(json.error);
+        }
+    } catch (e: any) {
+        alert(e.message);
+    } finally {
+        setLoading(false);
+    }
+  };
+
   if (!isAuth) {
       return <PasswordModal onSuccess={handleLogin} />;
   }
@@ -207,6 +230,7 @@ function App() {
                         onStop={() => sendControl("STOP")}
                         onContinue={() => sendControl("CONTINUE")}
                         onScreenshot={requestScreenshot}
+                        onRelaunch={requestRelaunch}
                         loading={loading}
                         screenshotLoading={screenshotLoading}
                         status={status.status}

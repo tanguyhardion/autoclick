@@ -5,6 +5,7 @@ interface ControlPanelProps {
   onStop: () => void;
   onContinue: () => void;
   onScreenshot: () => void;
+  onRelaunch: () => void;
   loading: boolean;
   screenshotLoading: boolean;
   status: string;
@@ -13,9 +14,15 @@ interface ControlPanelProps {
 }
 
 export const ControlPanel: React.FC<ControlPanelProps> = ({ 
-  onStart, onStop, onContinue, onScreenshot, loading, screenshotLoading, status, targetLevel, setTargetLevel
+  onStart, onStop, onContinue, onScreenshot, onRelaunch, loading, screenshotLoading, status, targetLevel, setTargetLevel
 }) => {
   const isRunning = status === 'RUNNING';
+  
+  const handleRelaunchClick = () => {
+    if (window.confirm('Are you sure you want to relaunch the game? This will close and restart the game.')) {
+      onRelaunch();
+    }
+  };
   
   const buttonBase = "flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-md active:scale-95 duration-200";
 
@@ -42,7 +49,7 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
             <span className="text-xs text-slate-500">(0 = No Limit)</span>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
         <button
           onClick={onStart}
           disabled={loading || isRunning}
@@ -89,6 +96,15 @@ export const ControlPanel: React.FC<ControlPanelProps> = ({
               Screenshot
             </>
           )}
+        </button>
+
+        <button
+          onClick={handleRelaunchClick}
+          disabled={loading}
+          className={`${buttonBase} bg-orange-500 hover:bg-orange-600 text-white`}
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          Relaunch
         </button>
       </div>
     </div>
